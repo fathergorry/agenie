@@ -1,0 +1,32 @@
+{
+  "name": "@aikane/agenie",
+  "version": "1.2",
+  "description": "AI agent for non-bureaucratic development & console",
+  "type": "module",
+  "exports": "./core/main.js",
+  "scripts": {
+    "ag": "node core/cli.js",
+    "task": "node core/task.js",
+    "diff": "node core/diff.js",
+    "rollback": "node core/rollback.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest"
+  },
+  "bin": {
+    "ag-task": "./core/task.js",
+    "ag-diff": "./core/diff.js",
+    "ag-rollback": "./core/rollback.js",
+    "ag-install": "./core/install.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "development",
+    "automation"
+  ],
+  "author": "Георгий Андриянов <sa_yang@bk.ru>",
+  "license": "not yet",
+  "dependencies": {
+    "diff": "^8.0.3",
+    "glob": "^13.0.1"
+  }
+}
