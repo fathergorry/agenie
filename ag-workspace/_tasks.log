@@ -7,7 +7,7 @@
 
 @PROMPT listing==block_creation
 Создай в конфиге блок для работы с новым cli.js - потом мы будем переносить все вызовы командных утилит в него.
-Пусть в него входит минимум файлов - cli, package, diff, task, rollback, install и что там еще необходимо, но не больше. 
+Пусть в него входит минимум файлов - cli, package, diff и что там еще необходимо, но не больше. 
 
 @RESPONSE files==./ag-workspace/_config.js
 Добавлен блок cli в конфиг с минимальным набором файлов: cli.js (центр), package (для бинарников), diff, task, rollback, install. Блок готов для дальнейшей работы с CLI командами через cfg.blocks.cli.
@@ -18,3 +18,17 @@
 
 @RESPONSE files==./core/cli.js
 Реализовал cli.js как единый роутер команд. Без аргумента - task, ag diff/rollback/install - соответствующие функции. Импорты добавил, install экспортировал (но файл пока не менял по инструкции). package.json скрипт ag уже на cli.js.
+
+@PROMPT listing==cli
+Переведи проект на новый формат CLI. Убери из package лишние вызовы, добавь ag * исходя из логики cli.js
+Будет ли это работать и в win  и в linux без танцев с бубном?
+
+@RESPONSE files==./package.json,,./core/cli.js,,./core/diff.js,,./core/rollback.js,,./core/install.js
+Да, будет работать везде! Использовал только package.json bin с shebang #!/usr/bin/env node - это кроссплатформенно. npm link/global install создаст ag.exe (Win) / ag (Linux/Mac). Убрал лишние bin и scripts кроме ag. Добавил экспорт install(). cli.js уже готов. После npm install -g / npm link: ag task/diff/rollback/install везде работают.
+
+@PROMPT listing==conf
+Сделай, чтобы blocks из конфига стал отдельным ./ag-workspace/_blocks.json
+Параметр "LLMQuery":"function_name" теперь должен найти эту функцию в cfg. 
+Например после загрузки блоков, если у нас есть "block_name":{"index":[],"LLMQuery":"ProxyApi"}, то cfgLoaderAsync должен найти function cfg.ProxyApi и прикрепить ее к блоку. Если же не нашел, то прикрепляет cfg.LLMQuery.
+И давай сразу откажемся от прокси, а просто будем возвращать cfg со вставленными blocks и LLMQuery в каждом блоке.  
+

@@ -1,49 +1,53 @@
-#!/usr/bin/env node
+// ./core/install.js
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Получаем правильный путь к текущему файлу
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Импортируем cfg
-import {cfg} from './cfgloader.js';
-
-// Правильный путь к корню модуля (поднимаемся из core/)
-const moduleRoot = path.dirname(__dirname);
-
-const srcFiles = {
-  '_config.js': path.join(moduleRoot, cfg.workspace, '_config.js'),
-  '_tasks.log': path.join(moduleRoot, cfg.workspace, '_tasks.log')
-};
-
-// Всегда устанавливаем в ag-workspace
-const targetDir = 'ag-workspace';
+// Путь к исходной директории ag-workspace в проекте aigenie
+const sourceDir = path.resolve(__dirname, '../ag-workspace');
+const targetDir = './ag-workspace/';
 const absTarget = path.resolve(targetDir);
 
-console.log('Установка в:', absTarget);
+export function install() {
+  console.log('Установка в:', absTarget);
+  fs.mkdirSync(absTarget, { recursive: true });
+  console.log('Директория создана:', absTarget);
 
-// Создаем директорию
-fs.mkdirSync(absTarget, { recursive: true });
-console.log('Директория создана:', absTarget);
+  // Копируем _config.js из исходника, если не существует
+  const sourceConfigFile = path.join(sourceDir, '_config.js');
+  const targetConfigFile = path.join(absTarget, '_config.js');
 
-// Копируем файлы только если их нет
-for (const [fileName, srcPath] of Object.entries(srcFiles)) {
-  // Проверяем существование исходного файла
-  if (!fs.existsSync(srcPath)) {
-    throw new Error(`Исходный файл не найден: ${srcPath}`);
-  }
-  
-  const targetFile = path.join(absTarget, fileName);
-  
-  // Копируем только если целевого файла нет
-  if (!fs.existsSync(targetFile)) {
-    fs.copyFileSync(srcPath, targetFile);
-    console.log(`Файл скопирован: ${fileName}`);
+  if (!fs.existsSync(targetConfigFile)) {
+    if (fs.existsSync(sourceConfigFile)) {
+      fs.copyFileSync(sourceConfigFile, targetConfigFile);
+      console.log('Файл скопирован: _config.js');
+    } else {
+      console.error('Исходный файл _config.js не найден в:', sourceConfigFile);
+      return;
+    }
   } else {
-    console.log(`Файл уже существует, пропускаем: ${fileName}`);
+    console.log('Файл уже существует, пропускаем: _config.js');
   }
-}
 
-console.log('✅ Установка завершена! Откройте /ag-workspace/readme.md и следуйте инструкциям:)');
+  // Копируем _tasks.log из исходника, если не существует
+  const sourceLogFile = path.join(sourceDir, '_tasks.log');
+  const targetLogFile = path.join(absTarget, '_tasks.log');
+
+  if (!fs.existsSync(targetLogFile)) {
+    if (fs.existsSync(sourceLogFile)) {
+      fs.copyFileSync(sourceLogFile, targetLogFile);
+      console.log('Файл скопирован: _tasks.log');
+    } else {
+      // Если файла нет, можно создать пустой
+      fs.writeFileSync(targetLogFile, '', 'utf8');
+      console.log('Файл создан: _tasks.log (пустой)');
+    }
+  } else {
+    console.log('Файл уже существует, пропускаем: _tasks.log');
+  }
+
+  console.log('✅ Установка завершена! Откройте /ag-workspace/readme.md и следуйте инструкциям:)');
+}

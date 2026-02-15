@@ -38,6 +38,7 @@ function ask(question) {
 function runCommand(cmd) {
   return new Promise((resolve) => {
     const child = spawn(cmd, { shell: true });
+    //const child = spawn(cmd, { shell: true, stdio: [process.stdin, process.stdout, process.stderr] });
 
     let output = '';
     child.stdout.on('data', (data) => output += data.toString());

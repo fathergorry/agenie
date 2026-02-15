@@ -1,21 +1,14 @@
 {
   "name": "@aikane/agenie",
-  "version": "1.2",
-  "description": "AI agent for non-bureaucratic development & console",
+  "version": "1.3.0",
+  "description": "agent AI to dig and fly",
   "type": "module",
-  "exports": "./core/main.js",
-  "scripts": {
-    "ag": "node core/cli.js",
-    "task": "node core/task.js",
-    "diff": "node core/diff.js",
-    "rollback": "node core/rollback.js",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest"
-  },
   "bin": {
-    "ag-task": "./core/task.js",
-    "ag-diff": "./core/diff.js",
-    "ag-rollback": "./core/rollback.js",
-    "ag-install": "./core/install.js"
+    "ag": "./core/cli.js"
+  },
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:win": "set NODE_OPTIONS=--experimental-vm-modules && jest"
   },
   "keywords": [
     "ai",
@@ -24,9 +17,12 @@
     "automation"
   ],
   "author": "Георгий Андриянов <sa_yang@bk.ru>",
-  "license": "not yet",
+  "license": "BSL 1.1",
   "dependencies": {
     "diff": "^8.0.3",
     "glob": "^13.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
   }
 }
