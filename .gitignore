@@ -2,9 +2,6 @@
 node_modules/
 ag-backups/
 sandbox/
-ag-workspace/*
-!ag-workspace/_config.js
-!ag-workspace/_tasks.log
 .git/
 .env
 pnpm-lock.yaml

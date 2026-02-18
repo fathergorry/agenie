@@ -1,34 +1,22 @@
-@PROMPT listing==mean
-Для каждого из файлов создай описание в 400-1000 знаков: что делает, какие функции экспортирует, данные в каком виде принимает и отдает, так чтобы была точно понятна его роль в проекте. 
-Результат сохрани в файле ./ag-workspace/mean.short
+@PROMPT listing==agblocks c==Подготовить файлы для анализа
+Добавь в ag-workspace/_blocks.json блок 'all' собирающий значимые файлы типового node js проекта и игнорирующий служебные каталоги и файлы.
 
-@RESPONSE files==./ag-workspace/mean.short
-Создал подробные описания всех файлов проекта в требуемом формате. Общий объем ~9500 знаков.
+@PROMPT listing==all comment==Создадим резюме проекта (если не важна приватность)
+Для каждого из файлов создай описание в 600-1000 знаков: что делает, какие функции экспортирует, данные в каком виде принимает и отдает, так чтобы была точно понятна его роль в проекте. Резюмируй, что за проект и для чего.
+Результат (резюме+список) сохрани в файле ./ag-backups/all.short
 
-@PROMPT listing==block_creation
-Создай в конфиге блок для работы с новым cli.js - потом мы будем переносить все вызовы командных утилит в него.
-Пусть в него входит минимум файлов - cli, package, diff и что там еще необходимо, но не больше. 
+@PROMPT listing==resume c== Имея резюме, можем создавать блоки ограниченного объема
+Создай в ag-workspace/_blocks.json блок, относящийся к консольному ассистенту, но не к консольному интерфейсу.
 
-@RESPONSE files==./ag-workspace/_config.js
-Добавлен блок cli в конфиг с минимальным набором файлов: cli.js (центр), package (для бинарников), diff, task, rollback, install. Блок готов для дальнейшей работы с CLI командами через cfg.blocks.cli.
 
-@PROMPT listing==cli
-Давай перейдем от формата нескольких команд к одной команде, но с аргументами: ag diff, ag rollback, ag install. отсутствие аргумента будет означать что мы запускаем task. Реализуй в cli.js
-Другие файлы пока не меняй. 
+##################################
 
-@RESPONSE files==./core/cli.js
-Реализовал cli.js как единый роутер команд. Без аргумента - task, ag diff/rollback/install - соответствующие функции. Импорты добавил, install экспортировал (но файл пока не менял по инструкции). package.json скрипт ag уже на cli.js.
 
-@PROMPT listing==cli
-Переведи проект на новый формат CLI. Убери из package лишние вызовы, добавь ag * исходя из логики cli.js
-Будет ли это работать и в win  и в linux без танцев с бубном?
-
-@RESPONSE files==./package.json,,./core/cli.js,,./core/diff.js,,./core/rollback.js,,./core/install.js
-Да, будет работать везде! Использовал только package.json bin с shebang #!/usr/bin/env node - это кроссплатформенно. npm link/global install создаст ag.exe (Win) / ag (Linux/Mac). Убрал лишние bin и scripts кроме ag. Добавил экспорт install(). cli.js уже готов. После npm install -g / npm link: ag task/diff/rollback/install везде работают.
-
-@PROMPT listing==conf
-Сделай, чтобы blocks из конфига стал отдельным ./ag-workspace/_blocks.json
-Параметр "LLMQuery":"function_name" теперь должен найти эту функцию в cfg. 
-Например после загрузки блоков, если у нас есть "block_name":{"index":[],"LLMQuery":"ProxyApi"}, то cfgLoaderAsync должен найти function cfg.ProxyApi и прикрепить ее к блоку. Если же не нашел, то прикрепляет cfg.LLMQuery.
-И давай сразу откажемся от прокси, а просто будем возвращать cfg со вставленными blocks и LLMQuery в каждом блоке.  
-
+@PROMPT listing==console model==4
+1) Исправь, чтобы в powershell не было ромбиков вместо русских букв.
+2) Убери exit, есть же Ctrl+C
+Старайся сохранить структуру, чтобы работал diff
+@RESPONSE files==./core\console.js
+1. ✅ Фикс ромбиков в PowerShell: stdio: ['pipe','pipe','pipe'] + явный .toString('utf8') + env переменные кодировки
+2. ✅ Убрал 'exit' и rl.close() - теперь Ctrl+C для выхода
+3. Сохранена структура diff - минимальные правки только в runCommand и processCommands

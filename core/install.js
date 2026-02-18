@@ -11,42 +11,34 @@ const sourceDir = path.resolve(__dirname, '../ag-workspace');
 const targetDir = './ag-workspace/';
 const absTarget = path.resolve(targetDir);
 
+const filesToCopy = ['_config.js', '_tasks.log', '_blocks.json', 'readme.md', 'taskformat.md'];
+
 export function install() {
   console.log('Установка в:', absTarget);
   fs.mkdirSync(absTarget, { recursive: true });
   console.log('Директория создана:', absTarget);
 
-  // Копируем _config.js из исходника, если не существует
-  const sourceConfigFile = path.join(sourceDir, '_config.js');
-  const targetConfigFile = path.join(absTarget, '_config.js');
+  for (const fileName of filesToCopy) {
+    const sourceFile = path.join(sourceDir, fileName);
+    const targetFile = path.join(absTarget, fileName);
 
-  if (!fs.existsSync(targetConfigFile)) {
-    if (fs.existsSync(sourceConfigFile)) {
-      fs.copyFileSync(sourceConfigFile, targetConfigFile);
-      console.log('Файл скопирован: _config.js');
+    if (!fs.existsSync(targetFile)) {
+      if (fs.existsSync(sourceFile)) {
+        fs.copyFileSync(sourceFile, targetFile);
+        console.log('Файл скопирован:', fileName);
+      } else {
+        if (fileName === '_tasks.log') {
+          // Если _tasks.log нет, создаем пустой
+          fs.writeFileSync(targetFile, '', 'utf8');
+          console.log('Файл создан:', fileName + ' (пустой)');
+        } else {
+          console.error('Исходный файл не найден в:', sourceFile);
+          return;
+        }
+      }
     } else {
-      console.error('Исходный файл _config.js не найден в:', sourceConfigFile);
-      return;
+      console.log('Файл уже существует, пропускаем:', fileName);
     }
-  } else {
-    console.log('Файл уже существует, пропускаем: _config.js');
-  }
-
-  // Копируем _tasks.log из исходника, если не существует
-  const sourceLogFile = path.join(sourceDir, '_tasks.log');
-  const targetLogFile = path.join(absTarget, '_tasks.log');
-
-  if (!fs.existsSync(targetLogFile)) {
-    if (fs.existsSync(sourceLogFile)) {
-      fs.copyFileSync(sourceLogFile, targetLogFile);
-      console.log('Файл скопирован: _tasks.log');
-    } else {
-      // Если файла нет, можно создать пустой
-      fs.writeFileSync(targetLogFile, '', 'utf8');
-      console.log('Файл создан: _tasks.log (пустой)');
-    }
-  } else {
-    console.log('Файл уже существует, пропускаем: _tasks.log');
   }
 
   console.log('✅ Установка завершена! Откройте /ag-workspace/readme.md и следуйте инструкциям:)');

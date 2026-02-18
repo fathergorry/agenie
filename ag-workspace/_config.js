@@ -20,7 +20,7 @@ function  VseGPT(prompt, opts={}) {
     opts.timeoutMs=30000;
     opts.apiKey = process.env.VSEGPT_API_KEY; //можно просто вставить сюда ключ как строку
     opts.url = 'https://'+'api.vsegpt.ru/v1/chat/completions'
-    opts.AImodel = models[10].id
+    opts.AImodel = models[opts.AImodel]?.id || models[10].id;
     return ai.OpenaiAPI(prompt, opts);
   }
 
@@ -37,30 +37,7 @@ export const cfg = {
   baseTaskPrompt: `Ты квалифицированный программист. Пиши максимально лаконичный, но понятный для человека код. Комментируй его, если это касается текущей задачи. Общайся и комментируй на русском. Answer without markdown. Не изменяй тесты без явной необходимости, создавай минимальное количество новых тестов.`,
   structuredTaskExtra: `Always answer in machine-readable JSON format, placing code of each file into separate field, like: {"FILE:./path/to/file.ext":"code","FILE:./path/to/another/file":"code of another file if needed","comment":"твой комментарий и все что не входит в листинги. Сюда же пиши, все, что обозначено как 'здесь, этот диалог', и все, место для чего не указано явно."}. Only include files created or changed by you. `,
   
-  //определите блоки вашего проекта, поскольку многие LLM имеют ограничения на 32-256 кб входного текста, но даже если его немного меньше, все равно работают c большими хуже чем с маленькими блоками. К тому же, вам может быть нежелательно или рисково передавать весь проект "на сторону". Блоки описываются в формате glob, + кажлму блоку можно сопоставить свой источник ИИ.
-  blocks: { //даны для примера, формат - glob, glob-patterns
-    none: {index:[]},
-    block_creation: {index:["ag-workspace/_config.js","ag-workspace/mean.short"], skip_gitignore:true}, //этот лучше не удалять
-    mean : {
-      index: ["package.json", "core/*.{js,md}", "**/_tasks.log", "ag-workspace/_config.js"] 
-      ,ignore:["**/vsegptapi.js","**/timer.js", "**/console.js"]
-    },
-    curr : {
-      index: ["**/taskformat.md","**/taskparser.js", "**/_tasks.log"],
-      LLMQuery:VseGPT
-    },
-    //Блок для CLI команд - централизованное выполнение утилит проекта
-    conf: {
-      index: [
-        "core/cfgLoaderAsync.js",
-        "ag-workspace/_config.js", 
-        "ag-workspace/_blocks.json"
-      ],
-      LLMQuery: VseGPT,
-      skip_gitignore: true
-    }
-  }
-  ,LLMQuery:VseGPT, //если в блоке нет своей LLMQuery, выполнится эта
+  LLMQuery:VseGPT, //если в блоке нет своей LLMQuery, выполнится эта
   VseGPT, ProxyAPI
 }
 

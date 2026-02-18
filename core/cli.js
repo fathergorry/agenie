@@ -3,6 +3,9 @@
 const command = process.argv[2];
 
 switch(command) {
+  case 'cli':
+    import('./console.js').then(({ processCommands }) => processCommands(process.argv[3]));
+    break;
   case 'install':
     // Загружаем install.js только тут, чтобы не грузились другие зависимости
     import('./install.js').then(({ install }) => install());
@@ -24,6 +27,6 @@ switch(command) {
     import('./task.js').then(({ runTask }) => runTask());
     break;
   default:
-    console.log('Неизвестная команда:', command);
+    console.log('Неуместная команда:', command);
     console.log('Доступно: ag [diff|rollback|install|task|list]');
 }

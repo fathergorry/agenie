@@ -1,10 +1,12 @@
-#!/usr/bin/env node
 
 import { spawn } from 'child_process';
 import { createInterface } from 'readline';
 import fs, { writeFileSync, renameSync } from 'fs';
 import path from 'path';
-import { cfg } from './cfgloader.js';
+import {dos866ToUtf8} from './866.js';
+
+import {loadConfig} from './cfgLoaderAsync.js';
+const cfg = await loadConfig();
 
 const workspaceDir = './ag-workspace';
 if (!fs.existsSync(workspaceDir)) {
@@ -16,6 +18,10 @@ const rl = createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+// Состояние сессии
+let sessionCwd = process.cwd();
+let sessionEnv = { ...process.env };
 
 function loadCommands() {
   const content = fs.readFileSync(logPath, 'utf8');
@@ -34,11 +40,56 @@ function ask(question) {
   });
 }
 
-// Функция runCommand с нормальным захватом вывода
-function runCommand(cmd) {
+// Функция runCommand с нормальным захватом вывода и обработкой сессии
+async function runCommand(cmd) {
+  // Обработка специальных команд
+  if (cmd.startsWith('cd ')) {
+    const dir = cmd.slice(3).trim();
+    const resolvedPath = path.resolve(sessionCwd, dir);
+    if (fs.existsSync(resolvedPath)) {
+      sessionCwd = resolvedPath;
+      process.chdir(sessionCwd);
+      const msg = `Текущая директория: ${sessionCwd}`;
+      console.log(msg);
+      return msg;
+    } else {
+      const msg = `cd: нет такого файла или каталога: ${dir}`;
+      console.log(msg);
+      return msg;
+    }
+  }
+
+  if (cmd === 'pwd') {
+    const msg = sessionCwd;
+    console.log(msg);
+    return msg;
+  }
+
+  if (cmd.startsWith('export ')) {
+    const match = cmd.match(/^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (match) {
+      const key = match[1];
+      let value = match[2];
+      // Удалить кавычки, если они есть
+      if ((value.startsWith('"') && value.endsWith('"')) || 
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      sessionEnv[key] = value;
+      process.env[key] = value;
+      const msg = `Установлена переменная ${key}`;
+      console.log(msg);
+      return msg;
+    } else {
+      const msg = 'Неверный формат export. Используйте: export KEY=VALUE';
+      console.log(msg);
+      return msg;
+    }
+  }
+
+  // Для всех остальных команд используем spawn
   return new Promise((resolve) => {
-    const child = spawn(cmd, { shell: true });
-    //const child = spawn(cmd, { shell: true, stdio: [process.stdin, process.stdout, process.stderr] });
+    const child = spawn(cmd, { shell: true, cwd: sessionCwd, env: sessionEnv });
 
     let output = '';
     child.stdout.on('data', (data) => output += data.toString());
@@ -140,7 +191,7 @@ async function askLLM(data) {
   }
 }
 
-async function processCommands() {
+export async function processCommands() {
   let data = loadCommands();
 
   const commandIndex = getCurrentCommandIndex(data);
@@ -148,12 +199,7 @@ async function processCommands() {
     console.log('✅ Все команды обработаны.');
     
     // Предлагаем ввести новую команду или запрос
-    const newInput = await ask('\nВведите новую команду или запрос (или "exit" для выхода): ');
-    
-    if (newInput.trim().toLowerCase() === 'exit') {
-      rl.close();
-      return;
-    }
+    const newInput = await ask('\nВведите новую команду или запрос (или Ctrl+C для выхода): ');
     
     if (isCommand(newInput)) {
       // Добавляем новую команду
@@ -225,4 +271,5 @@ async function processCommands() {
   }
 }
 
-processCommands();
+import { fileURLToPath } from 'url';
+if (process.argv[1] === fileURLToPath(import.meta.url)) processCommands();

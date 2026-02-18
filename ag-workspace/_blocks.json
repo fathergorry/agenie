@@ -1,0 +1,48 @@
+{
+  "_comment":{"index":[],"_comment":"This file contains project segmentation description. Key - block identifier. Value - object with required 'index' field (files with important information to analyze) and optionals: 'ignore' (files to skip and not important), 'LLMQuery' (don't use), 'skip_gitignore' (if using files in git-gnored folders). 'index' and 'ignore' fields use 'glob' format - array for pattern-based file indexing."},
+  "none": {"index":[]},
+  "resume": {"index":["ag-workspace/_blocks.json","ag-backups/all.short"], "skip_gitignore":true },
+  "mean" : {
+    "index": ["package.json", "core/*.{js,md}", "**/_tasks.log", "ag-workspace/**"] ,
+    "ignore":["**/timer.js"],
+    "skip_gitignore": true
+  },
+  "conf": {
+    "index": [
+      "core/cfgLoaderAsync.js",
+      "ag-workspace/_config.js", 
+      "ag-workspace/_blocks.json",
+      "core/indexer.js"
+    ],
+    "skip_gitignore": true
+  },
+  "console": {
+    "index": [
+      "core/console.js",
+      "ag-workspace/console_log.json"
+    ],
+    "skip_gitignore": true
+  },
+  "all": {
+    "index": [
+      "package.json",
+      "*.{js,ts,mjs,cjs}",
+      "**/*.{js,ts,mjs,cjs}",
+      "**/*.md",
+      "**/*.json",
+      "**/{.babelrc,.eslintrc}.{js,json,yaml,yml}",
+      "**/{tsconfig,wpack,webpack}.json",
+      "**/{Dockerfile,docker-compose}.yml",
+      "**/.env*",
+      "**/{README,LICENSE,MANIFEST}.*"
+    ],
+    "ignore": [
+      "**/{ag-backups,node_modules,bower_components,dist,build,.next,.nuxt,out,.cache}/**",
+      "**/*.{log,lock,pid,pem}",
+      "**/{coverage,.nyc_output}/**",
+      "**/.git/**",
+      "**/{.vscode,.idea}/**",
+      "**/*.min.js"
+    ]
+  }
+}
