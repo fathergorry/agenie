@@ -28,7 +28,6 @@ function  VseGPT(prompt, opts={}) {
 export const cfg = {
 //  __filename, 
   cfgLocation: url.fileURLToPath(import.meta.url),
-  envFiles: ['/mnt/d/projects/vars.env', '../.env'],
   backups: './ag-backups/', //Резервные копии изменяемых файлов
   workspace: './ag-workspace/', //Значение пока только './ag-workspace'
   tests: './tests', 

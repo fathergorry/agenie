@@ -20,7 +20,9 @@
   "license": "BSL 1.1",
   "dependencies": {
     "diff": "^8.0.3",
-    "glob": "^13.0.1"
+    "dotenv": "^16.6.1",
+    "glob": "^13.0.1",
+    "iconv-lite": "^0.7.2"
   },
   "devDependencies": {
     "jest": "^30.2.0"

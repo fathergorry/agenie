@@ -1,37 +1,40 @@
-
 import { spawn } from 'child_process';
 import { createInterface } from 'readline';
-import fs, { writeFileSync, renameSync } from 'fs';
+import fs, { writeFileSync } from 'fs';
 import path from 'path';
-import {dos866ToUtf8} from './866.js';
+import { sysInfo, decode } from './866.js';
 
-import {loadConfig} from './cfgLoaderAsync.js';
+import { loadConfig } from './cfgLoaderAsync.js';
 const cfg = await loadConfig();
 
-const workspaceDir = './ag-workspace';
-if (!fs.existsSync(workspaceDir)) {
-  fs.mkdirSync(workspaceDir, { recursive: true });
+// Глобальные переменные
+let consoleLog = [];
+let globalLogPath = path.join(cfg.workspace, 'console_log.json');
+
+try {
+  consoleLog = JSON.parse(fs.readFileSync(globalLogPath, 'utf8'));
+  showResume()
+} catch {
+  const dir = path.dirname(globalLogPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  consoleLog = [];
+  fs.writeFileSync(globalLogPath, '[]');
 }
 
-const logPath = path.join(workspaceDir, 'console_log.json');
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-// Состояние сессии
-let sessionCwd = process.cwd();
-let sessionEnv = { ...process.env };
-
-function loadCommands() {
-  const content = fs.readFileSync(logPath, 'utf8');
-  return JSON.parse(content);
+function saveLog() {
+  const dir = path.dirname(globalLogPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync(globalLogPath, JSON.stringify(consoleLog , null, 2));
 }
 
-function saveLog(data) {
-  const tempFile = path.join(workspaceDir, 'console_log.tmp');
-  writeFileSync(tempFile, JSON.stringify(data, null, 2));
-  renameSync(tempFile, logPath);
+function showResume(){
+  const resumeObjects = consoleLog.filter(item => 'resume' in item); 
+  if(!resumeObjects.length) return; 
+  console.log(resumeObjects[0].resume);
+  //return resumeObjects[resumeObjects.length - 1].resume
+  //return resumeObjects.map(obj => obj.resume || '').join('\n')
 }
 
 function ask(question) {
@@ -39,6 +42,10 @@ function ask(question) {
     rl.question(question, resolve);
   });
 }
+
+// Состояние сессии
+let sessionCwd = process.cwd();
+let sessionEnv = { ...process.env };
 
 // Функция runCommand с нормальным захватом вывода и обработкой сессии
 async function runCommand(cmd) {
@@ -70,8 +77,7 @@ async function runCommand(cmd) {
     if (match) {
       const key = match[1];
       let value = match[2];
-      // Удалить кавычки, если они есть
-      if ((value.startsWith('"') && value.endsWith('"')) || 
+      if ((value.startsWith('"') && value.endsWith('"')) ||
           (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       }
@@ -89,34 +95,60 @@ async function runCommand(cmd) {
 
   // Для всех остальных команд используем spawn
   return new Promise((resolve) => {
-    const child = spawn(cmd, { shell: true, cwd: sessionCwd, env: sessionEnv });
+    let cleanCmd = cmd.trim();
+    if ((cleanCmd.startsWith('"') && cleanCmd.endsWith('"')) ||
+        (cleanCmd.startsWith("'") && cleanCmd.endsWith("'"))) {
+      cleanCmd = cleanCmd.slice(1, -1);
+    }
 
-    let output = '';
-    child.stdout.on('data', (data) => output += data.toString());
-    child.stderr.on('data', (data) => output += data.toString());
+    const info = sysInfo();
+    const isPowerShell = info.includes('PowerShell');
+
+    let commandToRun, args = [];
+    if (isPowerShell) {
+      commandToRun = 'powershell.exe';
+      args = ['-Command', cleanCmd];
+    } else {
+      commandToRun = cleanCmd;
+    }
+
+    const child = spawn(commandToRun, args, {
+      shell: !isPowerShell,
+      cwd: sessionCwd,
+      env: sessionEnv
+    });
+
+    let outputBuffer = Buffer.alloc(0);
+    child.stdout.on('data', (data) => {
+      outputBuffer = Buffer.concat([outputBuffer, data]);
+    });
+    child.stderr.on('data', (data) => {
+      outputBuffer = Buffer.concat([outputBuffer, data]);
+    });
 
     child.on('close', (code) => {
-      if (output.trim()) {
-        console.log(output.trim()); // Выводим результат в консоль
-        resolve(output.trim());
+      const decodedOutput = decode(outputBuffer);
+      if (decodedOutput.trim()) {
+        console.log(decodedOutput.trim());
+        resolve(decodedOutput.trim());
       } else {
         const msg = `Команда завершена с кодом ${code}`;
-        console.log(msg); // Выводим сообщение в консоль
+        console.log(msg);
         resolve(msg);
       }
     });
   });
 }
 
-function getCurrentCommandIndex(data) {
+function getCurrentCommandIndex() {
   let commandIndex = -1;
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].hasOwnProperty('command')) {
+  for (let i = 0; i < consoleLog.length; i++) {
+    if (consoleLog[i].hasOwnProperty('command')) {
       if (commandIndex !== -1) {
         return commandIndex;
       }
       commandIndex = i;
-    } else if (data[i].hasOwnProperty('result')) {
+    } else if (consoleLog[i].hasOwnProperty('result')) {
       if (commandIndex !== -1) {
         commandIndex = -1;
       }
@@ -125,10 +157,10 @@ function getCurrentCommandIndex(data) {
   return commandIndex;
 }
 
-function getLastAssistantBefore(data, cmdIndex) {
+function getLastAssistantBefore(cmdIndex) {
   for (let i = cmdIndex - 1; i >= 0; i--) {
-    if (data[i].hasOwnProperty('assistant')) {
-      return data[i].assistant;
+    if (consoleLog[i].hasOwnProperty('assistant')) {
+      return consoleLog[i].assistant;
     }
   }
   return 'Без комментариев:';
@@ -140,136 +172,131 @@ function isCommand(input) {
   return /^[a-zA-Z0-9_][a-zA-Z0-9_-]*$/.test(firstWord);
 }
 
-// Расширенный список опасных команд
 function isDangerousCommand(command) {
   const dangerousCommands = [
     'rm', 'sudo', 'passwd', 'mv', 'cp', 'dd', 'kill', 'pkill', 'reboot', 'shutdown',
-    'del', 'rmdir', 'format', 'diskpart', 'taskkill', 'bcdedit', 'reg', 'attrib', 
-    'cipher', 'sfc', 'chkdsk', 'netsh', 'gpupdate', 'takeown', 'icacls'
+    'del', 'rmdir', 'format', 'diskpart', 'taskkill', 'bcdedit', 'reg', 'attrib',
+    'cipher', 'sfc', 'netsh', 'gpupdate', 'takeown', 'icacls'
   ];
   const firstWord = command.split(/\s+/)[0];
   return dangerousCommands.includes(firstWord.toLowerCase());
 }
 
-// Функция для работы с LLM API
-async function askLLM(data) {
-  const systemPrompt = `Ты — мой ассистент в командной строке. Ты помогаешь анализировать и управлять через терминал. Взаимодействие описано историей, которая идёт по шагам. Формат истории - json массив состоящий из объектов. Каждый объект в ней — один из этапов взаимодействия с командной строкой, это может быть команда, твой комментарий, результат выполнения команды, либо вопрос или указание от пользователя. 
+async function askLLM(aiCommand) {
+  let _resume = '';
+  if(aiCommand !== 'new' && consoleLog.length >= 2) {
+      _resume = '{"resume":"Содержание и анализ переданного документа, и список использованных команд, чтобы не повторять."},';
+  }
+  let systemPrompt = `Ты — мой ассистент в командной строке ${JSON.stringify(sysInfo())}. Ты помогаешь анализировать и управлять через терминал. Взаимодействие описано историей, которая идёт по шагам. Формат истории - json массив состоящий из объектов. Каждый объект в ней — один из этапов взаимодействия с командной строкой, это может быть команда, твой комментарий, результат выполнения команды, либо вопрос или указание от пользователя. 
 Твои задачи: 
 1. Понять что делается. 
 2. Понять, на каком мы сейчас этапе.
 3. Сгенерировать один или несколько следующих шагов с командами и пояснениями. 
-4. Вернуть ответ в таком же json-формате (массив из объектов с assistant либо command, причем в assistant нельзя разметку)
+4. Вернуть ответ в аналогичном json-формате: [
+  ${_resume}
+  {"assistant":"твой комментарий к нижеследующей команде"},
+  {"command":"console command"},
+  {"assistant":"комментарий к команде 2"},
+  {"command":"консольная команда 2..."}
+] То есть command всегда идет после assistant.
+Тебе нельзя создавать строки с "user", они могут быть только во входящем файле - это замечания и вопросы пользователя. 
   `;
   const dialog = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: JSON.stringify(data) }
+      { role: 'user', content: JSON.stringify(consoleLog) }
     ]
-  console.log(dialog)
-  try {
-    const response = await cfg.LLMQuery(dialog);
-    console.log(response)
-   // Проверяем, что это массив
-    if (!Array.isArray(response)) {
-      console.error("LLM вернул не массив");
-      return;
-    }
-    
-    // Проверяем, есть ли хотя бы один assistant или command
-    const hasValidElement = response.some(item => 
-      item.hasOwnProperty('assistant') || item.hasOwnProperty('command')
-    );
-    
-    if (!hasValidElement) {
-      console.error("LLM не вернул ни одного assistant ни command элемента");
-      return;
-    }
-    
-    // Сохраняем ответ как новые данные
-    saveLog(response);
-  } catch (error) {
-    console.error("Ошибка при обращении к LLM API:", error.message);
+  console.log('Ожидаем ответа LLM, шагов отправлено:', consoleLog.length)
+
+  const response = await cfg.LLMQuery(dialog);
+  console.log(response)
+
+  if (!Array.isArray(response)) {
+    throw new Error("LLM вернул не массив");
   }
+
+  const hasValidElement = response.some(item =>
+    item.hasOwnProperty('assistant') || item.hasOwnProperty('command')
+  );
+  if (!hasValidElement) {
+    throw new Error("LLM не вернул ни одного assistant ни command элемента");
+  }
+
+  consoleLog = response;
+  showResume();
+  saveLog();
 }
 
 export async function processCommands() {
-  let data = loadCommands();
+  while (true) {
+    const commandIndex = getCurrentCommandIndex();
 
-  const commandIndex = getCurrentCommandIndex(data);
-  if (commandIndex === -1) {
-    console.log('✅ Все команды обработаны.');
-    
-    // Предлагаем ввести новую команду или запрос
-    const newInput = await ask('\nВведите новую команду или запрос (или Ctrl+C для выхода): ');
-    
-    if (isCommand(newInput)) {
-      // Добавляем новую команду
-      data.push({ command: newInput, addedBy: "user" });
-      saveLog(data);
-      
-      // Выполняем команду
-      const cmdResult = await runCommand(newInput);
-      data.push({ result: cmdResult });
-      saveLog(data);
+    let input;
+    if (commandIndex === -1) {
+      // Очередь команд пуста — можно начать новую или продолжить
+      console.log('✅ Все команды обработаны. Можно начать новый сеанс (со слова new) или продолжить.');
+      input = await ask('\nВведите "new инструкция", команду или запрос (или Ctrl+C): ');
     } else {
-      // Добавляем как пользовательский запрос
-      data.push({ user: newInput });
-      saveLog(data);
-      await askLLM(data);
+      // Есть незавершенная команда — спрашиваем, что делать
+      const command = consoleLog[commandIndex].command;
+      const assistantComment = getLastAssistantBefore(commandIndex);
+      console.log(`\n💬 ${assistantComment}:\n➡️ ${command}`);
+      input = await ask('Enter - выполнить, s - пропустить, либо своя команда/запрос\n> ');
     }
-    
-    // Рекурсивно вызываем снова для обработки новых данных
-    await processCommands();
-    return;
-  }
 
-  const command = data[commandIndex].command;
-  const assistantComment = getLastAssistantBefore(data, commandIndex);
+    // Проверяем, начинается ли ввод с 'new'
+    const trimmedInput = input.trim();
+    const parts = trimmedInput.split(/\s+/);
+    const firstWord = parts[0];
 
-  console.log(`\n💬 ${assistantComment}:`);
+    if (firstWord === "new") {
+      // Сбрасываем историю
+      consoleLog = [];
+      const instruction = parts.slice(1).join(' ');
+      if (instruction) {
+        consoleLog.push({ user: instruction });
+        await askLLM('new');
+      }
+      continue;
+    }
 
-  // Проверяем, является ли команда опасной
-  if (isDangerousCommand(command)) {
-    console.log("Выполнять с осторожностью и пониманием");
-  }
+    // Если ввод пустой и есть команда для выполнения
+    if (trimmedInput === '' && commandIndex !== -1) {
+      const command = consoleLog[commandIndex].command;
+      const result = await runCommand(command);
+      consoleLog.splice(commandIndex + 1, 0, { result });
+      saveLog();
+      continue;
+    }
 
-  console.log(`➡️ ${command}`);
+    // Если ввод 's' и есть команда для пропуска
+    if (trimmedInput === 's' && commandIndex !== -1) {
+      consoleLog.splice(commandIndex + 1, 0, { result: "пропущено пользователем" });
+      saveLog();
+      continue;
+    }
 
-  const userInput = await ask('Enter - выполнить, s - пропустить, либо своя инструкция, комментарий или команда\n> ');
+    // Если ввод — своя команда (и не 's' и не 'new')
+    if (isCommand(trimmedInput)) {
+      // Если была ИИ-команда, помечаем её как пропущенную
+      if (commandIndex !== -1) {
+        consoleLog.splice(commandIndex + 1, 0, { result: "пропем" });
+      }
+      // Выполняем свою команду
+      const result = await runCommand(trimmedInput);
+      consoleLog.push({ command: trimmedInput, addedBy: "user" });
+      consoleLog.push({ result });
+      saveLog();
+      continue;
+    }
 
-  const action = userInput.trim().toLowerCase();
-
-  if (action === 's') {
-    data.splice(commandIndex + 1, 0, { result: "пропущено пользователем" });
-    saveLog(data);
-    await processCommands();
-    return;
-  }
-
-  if (action === '') {
-    const result = await runCommand(command);
-    data.splice(commandIndex + 1, 0, { result: result });
-    saveLog(data);
-    await processCommands();
-    return;
-  }
-
-  if (isCommand(userInput)) {
-    data.splice(commandIndex + 1, 0, { result: "отменено пользователем" });
-    data.splice(commandIndex + 2, 0, { command: userInput, addedBy:"user" });
-    saveLog(data);
-    const cmdResult = await runCommand(userInput);
-    data.splice(commandIndex + 3, 0, { result: cmdResult });
-    rl.history?.unshift(userInput);
-    saveLog(data);
-    await processCommands();
-  } else {
-    // Не-команда: вставляем после текущей команды
-    data.splice(commandIndex + 1, 0, { result: "отменено пользователем" });
-    data.splice(commandIndex + 2, 0, { user: userInput });
-    saveLog(data); 
-    await askLLM(data);
+    // Если не 'new', не 's', не пустой ввод, и не команда — значит это запрос к ИИ
+    consoleLog.push({ user: trimmedInput });
+    await askLLM();
   }
 }
 
-import { fileURLToPath } from 'url';
-if (process.argv[1] === fileURLToPath(import.meta.url)) processCommands();
+const rl = createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+

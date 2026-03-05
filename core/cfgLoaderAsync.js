@@ -1,6 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import dotenv from 'dotenv'; 
+
+
+
+
+
+
+dotenv.config({ debug:false, quiet: true });
 
 import * as ai from './openaiapi.js'
 globalThis.ai = ai
@@ -24,6 +32,14 @@ export async function loadConfig(configPath = DEFAULT_CONFIG_PATH) {
   } else {
     throw new Error ('No _blocks.json. Run ag install')
   }
+  if(Array.isArray(cfg.envFiles)){
+    cfg.envFiles.forEach(file=>{
+      //console.log('env: ',file)
+      dotenv.config({ path: file});
+    })
+  } 
+  cfg.blocks['none'] = {"index":[]}
+  //console.log('envp: ', process.env)
 
   // Назначаем LLMQuery для каждого блока
 

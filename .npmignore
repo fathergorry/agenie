@@ -1,0 +1,6 @@
+core/diff.js
+core/nogit.js
+core/indexer.js
+core/task.js
+core/rollback.js
+core/taskparser.js
