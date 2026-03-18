@@ -1,3 +1,4 @@
+# --- Ваши личные правила ---
 !.gitignore
 node_modules/
 ag-backups/
@@ -5,3 +6,87 @@ sandbox/
 .git/
 .env
 pnpm-lock.yaml
+
+# --- Стандартные правила для Node.js (из шаблона GitHub) ---
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+lib-cov
+coverage
+*.lcov
+.nyc_output
+
+# Dependencies (дубликат node_modules уже есть выше, но оставлен для ясности структуры)
+jspm_packages/
+web_modules/
+bower_components
+
+# Build outputs
+build/Release
+dist/
+.next
+out
+.vuepress/dist
+**/.vitepress/dist
+.svelte-kit/
+.temp
+.cache
+.parcel-cache
+.nuxt
+.docusaurus
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional caches
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+.yarn-integrity
+.fusebox/
+.dynamodb/
+.firebase/
+.vscode-test
+
+# Environment files (дубликат .env уже есть выше)
+.env.*
+!.env.example
+
+# Pack output
+*.tgz
+
+# Yarn v3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Vite logs
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Misc
+.grunt
+.lock-wscript
+.tern-port
+.serverless/
