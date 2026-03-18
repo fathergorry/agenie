@@ -3,7 +3,7 @@
 const command = process.argv[2];
 
 switch(command) {
-  case 'cli':
+  case 'sh':
     import('./console.js').then(({ processCommands }) => processCommands(process.argv[3]));
     break;
   case 'install':

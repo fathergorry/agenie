@@ -1,0 +1,23 @@
+[
+  {
+    "resume": "Получена информация о системе: OS Name - Майкрософт Windows 11 Pro, OS Version - 10.0.26200. Установлено, что текущий пользователь не является администратором. Использовались команды Get-WmiObject и проверка привилегий через Security.Principal."
+  },
+  {
+    "assistant": "Проверим дополнительные сведения о системе, такие как установленная архитектура и тип системы (рабочая станция/сервер):"
+  },
+  {
+    "command": "(Get-WmiObject Win32_ComputerSystem).SystemType"
+  },
+  {
+    "assistant": "Определим точную редакцию и сборку ОС через PowerShell:"
+  },
+  {
+    "command": "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion').ProductName"
+  },
+  {
+    "assistant": "Также можно узнать текущую сборку напрямую из реестра:"
+  },
+  {
+    "command": "(Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion').CurrentBuild"
+  }
+]

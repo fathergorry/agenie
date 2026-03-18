@@ -1,14 +1,53 @@
 [
   {
-    "resume": "Пакет 7-Zip был успешно установлен, несмотря на ошибку в процессе установки. Подтверждение успешной установки: информация о пакете отображается корректно через команду winget show."
+    "assistant": "Создадим временную папку для тестирования различных кодировок"
   },
   {
-    "assistant": "Пакет 7-Zip версии 26.00 успешно установлен. Информация о пакете подтверждает его наличие в системе. Ошибка, возникшая во время установки, не повлияла на результат."
+    "command": "mkdir encoding_tests"
   },
   {
-    "command": "winget list 7zip"
+    "result": "Каталог: D:\\projects\\agenie\r\n\r\n\r\nMode                 LastWriteTime         Length Name                                                                \r\n----                 -------------         ------ ----                                                                \r\nd-----        05.03.2026     23:56                encoding_tests"
   },
   {
-    "assistant": "Проверим список установленных пакетов, связанных с 7zip, чтобы дополнительно убедиться в успешной установке."
+    "assistant": "Перейдем в созданную папку"
+  },
+  {
+    "command": "cd encoding_tests"
+  },
+  {
+    "assistant": "Создадим файл с текстом в кодировке UTF-8 с BOM"
+  },
+  {
+    "command": "echo 'Привет мир! (UTF-8)' | Out-File -Encoding utf8 test_utf8_bom.txt"
+  },
+  {
+    "assistant": "Создадим файл с текстом в кодировке UTF-8 без BOM"
+  },
+  {
+    "command": "echo 'Привет мир! (UTF-8 без BOM)' | Out-File -Encoding utf8NoBOM test_utf8_no_bom.txt"
+  },
+  {
+    "assistant": "Создадим файл с текстом в кодировке Windows-1251"
+  },
+  {
+    "command": "echo 'Привет мир! (Windows-1251)' | Out-File -Encoding Default test_win1251.txt"
+  },
+  {
+    "assistant": "Создадим файл с текстом в кодировке OEM (DOS)"
+  },
+  {
+    "command": "chcp 866 > nul && echo Привет мир! (OEM) > test_oem.txt"
+  },
+  {
+    "assistant": "Создадим файл с текстом в кодировке KOI8-R"
+  },
+  {
+    "command": "curl -s -o test_koi8r.txt https://raw.githubusercontent.com/wiki/m1kc/encoding-samples/koi8-r.txt"
+  },
+  {
+    "assistant": "Посмотрим содержимое директории с тестовыми файлами"
+  },
+  {
+    "command": "ls"
   }
 ]
